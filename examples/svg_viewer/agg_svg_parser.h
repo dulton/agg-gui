@@ -53,6 +53,21 @@ namespace svg
         void parse_style(const char* str);
         void parse_transform(const char* str);
 
+		// 解析<circle>元素
+		//
+		// 祝晓鹰添加 2014-02-07
+		void parse_circle(const char** attr);
+
+		// 解析<ellipse>元素
+		//
+		// 祝晓鹰添加 2014-02-07
+		void parse_ellipse(const char** attr);
+
+		// 解析根元素<svg>
+		//
+		// 祝晓鹰添加 2014-02-14
+		void parse_svg_root(const char** attr);
+
         unsigned parse_matrix(const char* str);
         unsigned parse_translate(const char* str);
         unsigned parse_rotate(const char* str);

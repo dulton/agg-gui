@@ -11,12 +11,19 @@
 #include "agg_svg_parser.h"
 
 //#include "agg_gamma_lut.h"
+#include "agg_svg_ctrl.h"
 
 enum { flip_y = false };
 
 
+
 class the_application : public agg::platform_support
 {
+    Button button1;
+    Button button2;
+    Button button3;
+    HorizontalLayout ctrls;
+
     agg::svg::path_renderer m_path;
 
     agg::slider_ctrl<agg::rgba8> m_expand;
@@ -52,12 +59,20 @@ public:
         m_y(0.0),
         m_dx(0.0),
         m_dy(0.0),
-        m_drag_flag(false)
+        m_drag_flag(false),
+        button1("rect.svg"),
+        button2("camera.svg"),
+        button3("rect.svg"),
+        ctrls("rect.svg")
     {
         add_ctrl(m_expand);
         add_ctrl(m_gamma);
         add_ctrl(m_scale);
         add_ctrl(m_rotate);
+
+        ctrls.AddCtrl(&button1);
+        ctrls.AddCtrl(&button2);
+        ctrls.AddCtrl(&button3);
 
         m_expand.label("Expand=%3.2f");
         m_expand.range(-1, 1.2);
@@ -113,11 +128,14 @@ public:
         
         m_path.expand(m_expand.value());
         start_timer();
-        m_path.render(ras, sl, ren, mtx, rb.clip_box(), 1.0);
+        
+        ctrls.render(ras, sl, ren, mtx, rb.clip_box(), 0.5);
+
         double tm = elapsed_time();
         unsigned vertex_count = m_path.vertex_count();
 
         ras.gamma(agg::gamma_none());
+        ras.reset_clipping();
         agg::render_ctrl(ras, sl, rb, m_expand);
         agg::render_ctrl(ras, sl, rb, m_gamma);
         agg::render_ctrl(ras, sl, rb, m_scale);
@@ -141,22 +159,6 @@ public:
         ren.color(agg::rgba(0,0,0));
         agg::render_scanlines(ras, sl, ren);
 
-
-        //agg::gamma_lut<> gl(m_gamma.value());
-        //unsigned x, y;
-        //unsigned w = unsigned(width());
-        //unsigned h = unsigned(height());
-        //for(y = 0; y < h; y++)
-        //{
-        //    for(x = 0; x < w; x++)
-        //    {
-        //        agg::rgba8 c = rb.pixel(x, y);
-        //        c.r = gl.inv(c.r);
-        //        c.g = gl.inv(c.g);
-        //        c.b = gl.inv(c.b);
-        //        rb.copy_pixel(x, y, c);
-        //    }
-        //}
     }
 
     virtual void on_mouse_button_down(int x, int y, unsigned flags)
@@ -223,7 +225,7 @@ int agg_main(int argc, char* argv[])
 {
     the_application app(agg::pix_format_bgra32, flip_y);
 
-    const char* fname = "tiger.svg";
+    const char* fname = "camera.svg";
     if(argc <= 1)
     {
         FILE* fd = fopen(app.full_file_name(fname), "r");

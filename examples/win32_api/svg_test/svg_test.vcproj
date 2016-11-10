@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="8.00"
 	Name="svg_test"
-	ProjectGUID="{BC093C3B-9B62-409E-B258-EB6A0D96BBC6}"
+	ProjectGUID="{6C93ACD7-4F9D-49BE-9EB3-D405D44AF65A}"
 	>
 	<Platforms>
 		<Platform
@@ -214,6 +214,10 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
+				RelativePath="..\..\..\src\agg_arc.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\..\src\agg_bezier_arc.cpp"
 				>
 				<FileConfiguration
@@ -302,6 +306,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\..\src\agg_rounded_rect.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\..\src\ctrl\agg_slider_ctrl.cpp"
 				>
 				<FileConfiguration
@@ -322,6 +330,14 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\..\svg_viewer\agg_svg_ctrl.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\svg_viewer\agg_svg_ctrl.h"
+				>
 			</File>
 			<File
 				RelativePath="..\..\svg_viewer\agg_svg_parser.cpp"
