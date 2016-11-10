@@ -37,6 +37,11 @@ namespace svg
         m_curved_trans_contour(m_curved_trans)
     {
         m_curved_trans_contour.auto_detect_orientation(false);
+
+		// 祝晓鹰添加 2014-02-14
+		m_width = m_height = 0.0;
+		strcpy( m_width_unit,  "" );
+		strcpy( m_height_unit, "" );
     }
 
 
@@ -241,13 +246,23 @@ namespace svg
     //------------------------------------------------------------------------
     void path_renderer::fill_opacity(double op)
     {
+		/* 原先的代码
         cur_attr().fill_color.opacity(op);
+		*/
+
+		// 祝晓鹰添加 2014-02-16
+		cur_attr().fill_opacity = op;
     }
 
     //------------------------------------------------------------------------
     void path_renderer::stroke_opacity(double op)
     {
+		/* 原先的代码
         cur_attr().stroke_color.opacity(op);
+		*/
+
+		// 祝晓鹰添加 2014-02-16
+		cur_attr().stroke_opacity = op;
     }
 
     //------------------------------------------------------------------------

@@ -23,6 +23,9 @@
 #include "agg_svg_parser.h"
 #include "expat.h"
 
+#include <agg_ellipse.h>      // 祝晓鹰添加 2014-02-07
+#include <agg_rounded_rect.h> // 祝晓鹰添加 2014-02-08
+
 namespace agg
 {
 namespace svg
@@ -307,6 +310,21 @@ namespace svg
         {
             self.parse_poly(attr, true);
         }
+		else
+		if (strcmp(el, "circle") == 0) // 祝晓鹰添加 2014-02-07
+        {
+            self.parse_circle( attr );
+        }
+		else
+		if (strcmp(el, "ellipse") == 0) // 祝晓鹰添加 2014-02-07
+        {
+            self.parse_ellipse( attr );
+        }
+		else
+		if (strcmp(el, "svg") == 0)		// 解析根元素
+		{								// 祝晓鹰添加 2014-02-14
+			self.parse_svg_root( attr );
+		}
         //else
         //if(strcmp(el, "<OTHER_ELEMENTS>") == 0) 
         //{
@@ -426,13 +444,28 @@ namespace svg
             sscanf(str + 1, "%x", &c);
             return rgb8_packed(c);
         }
+
+		// 解析格式为“rgb(xxx, xxx, xxx)”的颜色值
+		//
+		// 祝晓鹰添加 2014-02-07
+		else if ( strlen(str) > 3 && strncmp(str, "rgb", 3) == 0 )
+		{
+			int r, g, b;
+			int count = sscanf( str, "rgb(%d, %d, %d", &r, &g, &b );
+			if ( count != 3 )
+				throw exception("parse_color: Invalid color '%s'", str);
+			return rgba8( r, g, b );
+		}
+
         else
         {
             named_color c;
             unsigned len = strlen(str);
             if(len > sizeof(c.name) - 1)
             {
-                throw exception("parse_color: Invalid color name '%s'", str);
+                return rgba8( 0, 255, 0 );
+
+                //throw exception("parse_color: Invalid color name '%s'", str);
             }
             strcpy(c.name, str);
             const void* p = bsearch(&c, 
@@ -442,7 +475,8 @@ namespace svg
                                     cmp_color);
             if(p == 0)
             {
-                throw exception("parse_color: Invalid color name '%s'", str);
+                return rgba8( 0, 255, 0 );
+                //throw exception("parse_color: Invalid color name '%s'", str);
             }
             const named_color* pc = (const named_color*)p;
             return rgba8(pc->r, pc->g, pc->b, pc->a);
@@ -455,6 +489,48 @@ namespace svg
         return atof(str);
     }
 
+	// 解析带单位的浮点数，例如“12.5inch”
+	//   str	源字符串
+	//   value	返回浮点数
+	//   unit	返回浮点数的单位
+	//
+	// 祝晓鹰添加 2014-02-14
+	void parse_double_with_unit( const char* src, double* value, char* unit )
+	{
+		const char* str = src;
+
+		// 消除非数字字符
+		while ( *str && *str != '+' && *str != '-' && *str != '.' && !isdigit(*str) )
+			str++;
+		if ( strlen(str) == 0 )
+			throw exception( "parse_double_with_unit: Invalid value '%s'", src );
+
+		// 获取浮点数对应的字符串
+		const char* p = str;
+		while ( *p && (*p == '+' || *p == '-' || *p == '.' || isdigit(*p)) )
+			p++;
+		char str_value[32];
+		size_t count = p - str;
+		strncpy( str_value, str, count );
+		str_value[count] = 0;
+
+		// 转换成浮点数
+		*value = atof( str_value );
+
+		str = p;
+
+		// 消除空白字符
+		while ( *str && isspace(*str) )
+			str++;
+
+		// 获取浮点数的单位
+		p = str;
+		while ( *p && !isspace(*p) )
+			p++;
+		count = p - str;
+		strncpy( unit, str, count );
+		unit[count] = 0;
+	}
 
 
     //-------------------------------------------------------------
@@ -627,6 +703,11 @@ namespace svg
         double w = 0.0;
         double h = 0.0;
 
+		// 祝晓鹰添加 2014-02-07
+		bool has_rx = false;
+		bool has_ry = false;
+		double rx, ry;
+
         m_path.begin_path();
         for(i = 0; attr[i]; i += 2)
         {
@@ -636,22 +717,78 @@ namespace svg
                 if(strcmp(attr[i], "y") == 0)      y = parse_double(attr[i + 1]);
                 if(strcmp(attr[i], "width") == 0)  w = parse_double(attr[i + 1]);
                 if(strcmp(attr[i], "height") == 0) h = parse_double(attr[i + 1]);
-                // rx - to be implemented 
-                // ry - to be implemented
+
+				// 祝晓鹰添加 2014-02-07
+				if ( strcmp(attr[i], "rx") == 0 )
+				{
+					has_rx = true;
+					rx = parse_double(attr[i + 1]);
+				}
+				if ( strcmp(attr[i], "ry") == 0 )
+				{
+					has_ry = true;
+					ry = parse_double(attr[i + 1]);
+				}
             }
         }
-
 
         if(w != 0.0 && h != 0.0)
         {
             if(w < 0.0) throw exception("parse_rect: Invalid width: %f", w);
             if(h < 0.0) throw exception("parse_rect: Invalid height: %f", h);
 
+			// 祝晓鹰添加 2014-02-07
+			if ( has_rx && rx < 0.0 ) throw exception( "parse_rect: Invalid X-radius: %f", rx );
+			if ( has_ry && ry < 0.0 ) throw exception( "parse_rect: Invalid Y-radius: %f", ry );
+
+			// 判断是否为圆角矩形
+			//
+			// 祝晓鹰添加 2014-02-07
+			bool is_rounded_rect;
+			if ( has_rx && has_ry )			// 定义了rx、ry
+			{
+				is_rounded_rect = true;
+			}
+			else if ( has_rx && !has_ry )	// 只定义了rx
+			{
+				is_rounded_rect = true;
+				ry = rx;
+			}
+			else if ( !has_rx && has_ry )	// 只定义了ry
+			{
+				is_rounded_rect = true;
+				rx = ry;
+			}
+			else							// 没有定义rx、ry
+			{
+				is_rounded_rect = false;
+			}
+
+			/* 原先的代码
             m_path.move_to(x,     y);
             m_path.line_to(x + w, y);
             m_path.line_to(x + w, y + h);
             m_path.line_to(x,     y + h);
             m_path.close_subpath();
+			*/
+
+			// 祝晓鹰添加 2014-02-08
+			if ( is_rounded_rect )
+			{
+				rounded_rect rrect;
+				rrect.rect( x, y, x+w, y+h );
+				rrect.radius( rx, ry );
+				m_path.join_path( rrect );
+			}
+			else
+			{
+				m_path.move_to(x,     y);
+				m_path.line_to(x + w, y);
+				m_path.line_to(x + w, y + h);
+				m_path.line_to(x,     y + h);
+				m_path.close_subpath();
+			}
+
         }
         m_path.end_path();
     }
@@ -879,6 +1016,96 @@ namespace svg
         m_path.transform().premultiply(trans_affine_skewing(0.0, deg2rad(arg)));
         return len;
     }
+
+	//-------------------------------------------------------------
+	// 祝晓鹰添加 2014-02-07
+	void parser::parse_circle(const char** attr)
+	{
+        int i;
+        double cx = 0.0;
+        double cy = 0.0;
+        double r  = 0.0;
+
+        m_path.begin_path();
+        for( i = 0; attr[i]; i += 2 )
+        {
+            if ( !parse_attr(attr[i], attr[i + 1]) )
+            {
+                if ( strcmp(attr[i], "cx") == 0 )   cx = parse_double(attr[i + 1]);
+                if ( strcmp(attr[i], "cy") == 0 )   cy = parse_double(attr[i + 1]);
+                if ( strcmp(attr[i], "r" ) == 0 )   r  = parse_double(attr[i + 1]);
+            }
+        }
+
+        if ( r != 0.0 )
+        {
+            if ( r < 0.0) throw exception( "parse_circle: Invalid radius: %f", r );
+
+			ellipse ell( cx, cy, r, r );
+			m_path.join_path( ell );
+        }
+        m_path.end_path();
+	}
+
+	//-------------------------------------------------------------
+	// 祝晓鹰添加 2014-02-07
+	void parser::parse_ellipse(const char** attr)
+	{
+        int i;
+        double cx = 0.0;
+        double cy = 0.0;
+        double rx  = 0.0;
+		double ry  = 0.0;
+
+        m_path.begin_path();
+        for( i = 0; attr[i]; i += 2 )
+        {
+            if ( !parse_attr(attr[i], attr[i + 1]) )
+            {
+                if ( strcmp(attr[i], "cx") == 0 )   cx = parse_double(attr[i + 1]);
+                if ( strcmp(attr[i], "cy") == 0 )   cy = parse_double(attr[i + 1]);
+                if ( strcmp(attr[i], "rx") == 0 )   rx = parse_double(attr[i + 1]);
+				if ( strcmp(attr[i], "ry") == 0 )   ry = parse_double(attr[i + 1]);
+            }
+        }
+
+        if ( rx != 0.0 && ry != 0.0 )
+        {
+            if ( rx < 0.0) throw exception( "parse_ellipse: Invalid X-radius: %f", rx );
+			if ( ry < 0.0) throw exception( "parse_ellipse: Invalid Y-radius: %f", ry );
+
+			ellipse ell( cx, cy, rx, ry );
+			m_path.join_path( ell );
+        }
+        m_path.end_path();
+	}
+
+	//-------------------------------------------------------------
+	// 祝晓鹰添加 2014-02-14
+	void parser::parse_svg_root(const char** attr)
+	{
+        int i;
+        for( i = 0; attr[i]; i += 2 )
+        {
+			if ( strcmp(attr[i], "width") == 0 )
+			{
+				double value;
+				char   unit[32];
+				parse_double_with_unit( attr[i + 1], &value, unit );
+				if ( value < 0.0) throw exception( "parse_svg_root: Invalid width: %f", value );
+				m_path.set_width( value, unit );
+			}
+
+			if ( strcmp(attr[i], "height") == 0 )
+			{
+				double value;
+				char   unit[32];
+				parse_double_with_unit( attr[i + 1], &value, unit );
+				if ( value < 0.0) throw exception( "parse_svg_root: Invalid height: %f", value );
+				m_path.set_height( value, unit );
+			}
+        }
+	}
 
 }
 }

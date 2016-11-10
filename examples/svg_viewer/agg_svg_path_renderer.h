@@ -19,6 +19,8 @@
 #ifndef AGG_SVG_PATH_RENDERER_INCLUDED
 #define AGG_SVG_PATH_RENDERER_INCLUDED
 
+#include <string.h>		// 祝晓鹰添加 2014-02-14
+
 #include "agg_path_storage.h"
 #include "agg_conv_transform.h"
 #include "agg_conv_stroke.h"
@@ -64,6 +66,8 @@ namespace svg
         unsigned     index;
         rgba8        fill_color;
         rgba8        stroke_color;
+		double		fill_opacity;	// 祝晓鹰添加 2014-02-16
+		double		stroke_opacity;	//
         bool         fill_flag;
         bool         stroke_flag;
         bool         even_odd_flag;
@@ -78,6 +82,8 @@ namespace svg
             index(0),
             fill_color(rgba(0,0,0)),
             stroke_color(rgba(0,0,0)),
+			fill_opacity  ( 1.0 ),	// 祝晓鹰添加 2014-02-16
+			stroke_opacity( 1.0 ),	//
             fill_flag(true),
             stroke_flag(false),
             even_odd_flag(false),
@@ -94,6 +100,8 @@ namespace svg
             index(attr.index),
             fill_color(attr.fill_color),
             stroke_color(attr.stroke_color),
+			fill_opacity  ( attr.fill_opacity   ),	// 祝晓鹰添加 2014-02-16
+			stroke_opacity( attr.stroke_opacity ),	//
             fill_flag(attr.fill_flag),
             stroke_flag(attr.stroke_flag),
             even_odd_flag(attr.even_odd_flag),
@@ -110,6 +118,8 @@ namespace svg
             index(idx),
             fill_color(attr.fill_color),
             stroke_color(attr.stroke_color),
+			fill_opacity  ( attr.fill_opacity   ),	// 祝晓鹰添加 2014-02-16
+			stroke_opacity( attr.stroke_opacity ),	//
             fill_flag(attr.fill_flag),
             stroke_flag(attr.stroke_flag),
             even_odd_flag(attr.even_odd_flag),
@@ -166,6 +176,33 @@ namespace svg
         void curve4(double x2, double y2,                   // S, s
                     double x,  double y, bool rel=false);
         void close_subpath();                               // Z, z
+
+		// 添加顶点源
+		//
+		// 祝晓鹰添加 2014-02-07
+        template<class VertexSource>
+        void join_path(VertexSource& vs, unsigned path_id = 0)
+        {
+			m_storage.join_path( vs );
+		}
+
+		// 设置/获取SVG的宽度、高度及其长度单位
+		//
+		// 祝晓鹰添加 2014-02-14
+		void set_width( double value, const char* unit )
+		{
+			m_width = value;
+			strcpy( m_width_unit, unit );
+		}
+		void set_height( double value, const char* unit )
+		{
+			m_height = value;
+			strcpy( m_height_unit, unit );
+		}
+		double width()  { return m_width;  }
+		double height() { return m_height; }
+		const char* width_unit()  { return m_width_unit;  }
+		const char* height_unit() { return m_height_unit; }
 
 //        template<class VertexSource> 
 //        void add_path(VertexSource& vs, 
@@ -264,7 +301,10 @@ namespace svg
                     }
 
                     color = attr.fill_color;
+					/* 原先的代码
                     color.opacity(color.opacity() * opacity);
+					*/
+					color.opacity( attr.fill_opacity * opacity ); // 祝晓鹰添加 2014-02-16
                     ren.color(color);
                     agg::render_scanlines(ras, sl, ren);
                 }
@@ -290,7 +330,10 @@ namespace svg
                     ras.filling_rule(fill_non_zero);
                     ras.add_path(m_curved_stroked_trans, attr.index);
                     color = attr.stroke_color;
+					/* 原先的代码
                     color.opacity(color.opacity() * opacity);
+					*/
+					color.opacity( attr.stroke_opacity * opacity); // 祝晓鹰添加 2014-02-16
                     ren.color(color);
                     agg::render_scanlines(ras, sl, ren);
                 }
@@ -313,6 +356,14 @@ namespace svg
 
         curved_trans                 m_curved_trans;
         curved_trans_contour         m_curved_trans_contour;
+
+		// SVG的宽度和高度
+		//
+		// 祝晓鹰添加 2014-02-14
+		double		m_width;
+		double		m_height;
+		char		m_width_unit[32];
+		char		m_height_unit[32];
     };
 
 }
