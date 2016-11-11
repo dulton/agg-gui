@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="8.00"
 	Name="svg_test"
-	ProjectGUID="{6C93ACD7-4F9D-49BE-9EB3-D405D44AF65A}"
+	ProjectGUID="{E02F6B13-1F1E-4024-90F1-342FD9715766}"
 	>
 	<Platforms>
 		<Platform
@@ -330,10 +330,6 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\svg_viewer\agg_svg_ctrl.cpp"
-				>
 			</File>
 			<File
 				RelativePath="..\..\svg_viewer\agg_svg_ctrl.h"

@@ -19,10 +19,7 @@ enum { flip_y = false };
 
 class the_application : public agg::platform_support
 {
-    Button button1;
-    Button button2;
-    Button button3;
-    HorizontalLayout ctrls;
+    MyWindow MyWin;
 
     agg::svg::path_renderer m_path;
 
@@ -63,16 +60,16 @@ public:
         button1("rect.svg"),
         button2("camera.svg"),
         button3("rect.svg"),
-        ctrls("rect.svg")
+        ctrls("player.svg")
     {
         add_ctrl(m_expand);
         add_ctrl(m_gamma);
         add_ctrl(m_scale);
         add_ctrl(m_rotate);
 
-        ctrls.AddCtrl(&button1);
+        //ctrls.AddCtrl(&button1);
         ctrls.AddCtrl(&button2);
-        ctrls.AddCtrl(&button3);
+        //ctrls.AddCtrl(&button3);
 
         m_expand.label("Expand=%3.2f");
         m_expand.range(-1, 1.2);
@@ -129,7 +126,10 @@ public:
         m_path.expand(m_expand.value());
         start_timer();
         
-        ctrls.render(ras, sl, ren, mtx, rb.clip_box(), 0.5);
+        //ctrls.render(ras, sl, ren, mtx, rb.clip_box(), 0.5);
+        const rect_i& rc = rb.clip_box();
+        agg::pixfmt_bgra32& buf = MyWin.buf();
+        pixf.copy_from(buf, rc.x1, rc.y1, 0, 0, buf.width());
 
         double tm = elapsed_time();
         unsigned vertex_count = m_path.vertex_count();
@@ -140,7 +140,6 @@ public:
         agg::render_ctrl(ras, sl, rb, m_gamma);
         agg::render_ctrl(ras, sl, rb, m_scale);
         agg::render_ctrl(ras, sl, rb, m_rotate);
-
 
         char buf[128]; 
         agg::gsv_text t;
