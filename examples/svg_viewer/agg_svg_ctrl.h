@@ -32,21 +32,27 @@ public:
         m_path.bounding_rect(&m_min_x, &m_min_y, &m_max_x, &m_max_y);
 
         on_size(m_max_x - m_min_x, m_max_y - m_min_y);
+
+        opacity = 1.0f;
     }
     ~SvgCtrl()
     {
     }
     
-    void on_size(int x, int y)
+    virtual void on_size(int x, int y)
     {
         int width = x;
         int height = y;
-        int stride = width/4*4;
-        data.resize(stride * height * pixfmt::pix_width);
-        ren_buf.attach(&data[0], width, height, stride);
-        pixf.attach(ren_buf);
-        renderer_base rb(pixf);
-        //renderer_base.clear(fill_color);???
+        int stride = width*4/4;
+        if (stride > 0 && height > 0)
+        {
+            data.resize(stride * height * pixfmt::pix_width);
+            ren_buf.attach(&data[0], width, height, stride);
+            pixf.attach(ren_buf);
+            renderer_base rb(pixf);
+            //renderer_base.clear(fill_color);???
+
+        }
     }
 
     virtual agg::pixfmt_bgra32& buf()
@@ -112,7 +118,6 @@ public:
 
     agg::svg::path_renderer m_path;
     agg::pixfmt_bgra32 pixf;
-    int x1,y1;
     double opacity;
     std::string Name;
 
@@ -145,8 +150,8 @@ public:
         for (int i = 0; i < pod_ctrl.size(); i++)
         {
             agg::pixfmt_bgra32& subBuf = pod_ctrl[i].ctrl->buf();
-            int x1 = pod_ctrl[i].ctrl->x1;
-            int y1 = pod_ctrl[i].ctrl->y1;
+            int x1 = pod_ctrl[i].x;
+            int y1 = pod_ctrl[i].y;
             int subLen = subBuf.width();
 
             //将整个子buf拷贝到x1,y1
@@ -155,7 +160,8 @@ public:
 
         return pixf;
     }
-    
+
+
     SvgCtrl* findCtrl(std::string Name)
     {
     }
@@ -228,8 +234,9 @@ class Layout : public CtrlContainer
 public:
     Layout(const char* path):CtrlContainer(path){}
 
-    virtual void setSize(int width, int height)
+    virtual void on_size(int x, int y)
     {
+        SvgCtrl::on_size(x,y);
         CalcuLayout();
     }
     virtual void AddCtrl(SvgCtrl* c)
@@ -242,22 +249,24 @@ protected:
 private:
 };
 
-class HorizontalLayout : public CtrlContainer
+class HorizontalLayout : public Layout
 {
 public:
-    HorizontalLayout(const char* path):CtrlContainer(path){gap = 3;}
+    HorizontalLayout(const char* path):Layout(path){gap = 3;}
     virtual void CalcuLayout()
     {
-        int EachCtrlSize = ((m_max_x - m_min_x) - pod_ctrl.size()*gap)/pod_ctrl.size();
+        int LayoutWidth = pixf.width();
+        int LayoutHeight = pixf.height();
+        int EachWidth = (LayoutWidth - pod_ctrl.size()*gap)/pod_ctrl.size();
         for (int i = 0; i < pod_ctrl.size(); i++)
         {
             agg::rect_i rc;
-            rc.x1 = EachCtrlSize*i;
-            rc.x2 = rc.x1 + EachCtrlSize;
+            rc.x1 = EachWidth*i;
+            rc.x2 = rc.x1 + EachWidth;
             rc.y1 = m_min_y;
             rc.y2 = m_max_y;
 
-            pod_ctrl[i].ctrl->on_size(rc.x2-rc.x1, rc.y2-rc.x1);
+            pod_ctrl[i].ctrl->on_size(EachWidth, LayoutHeight);
             pod_ctrl[i].x = rc.x1;
             pod_ctrl[i].y = rc.y1;
         }
@@ -266,10 +275,10 @@ private:
     int gap;
 };
 
-class VerticalLayout : public CtrlContainer
+class VerticalLayout : public Layout
 {
 public:
-    VerticalLayout(const char* path):CtrlContainer(path){gap = 3;}
+    VerticalLayout(const char* path):Layout(path){gap = 3;}
     virtual void CalcuLayout()
     {
         int EachCtrlSize = ((m_max_x - m_min_x) - pod_ctrl.size()*gap)/pod_ctrl.size();
@@ -281,7 +290,7 @@ public:
             rc.y1 = EachCtrlSize*i;
             rc.y2 = rc.y1 + EachCtrlSize;
 
-            pod_ctrl[i].ctrl->on_size(rc.x2-rc.x1, rc.y2-rc.x1);
+            pod_ctrl[i].ctrl->on_size(rc.x2-rc.x1, rc.y2-rc.y1);
             pod_ctrl[i].x = rc.x1;
             pod_ctrl[i].y = rc.y1;
         }

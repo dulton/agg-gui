@@ -16,10 +16,27 @@
 enum { flip_y = false };
 
 
-
+class MyWindow : public HorizontalLayout
+{
+public:
+    MyWindow(const char* pname):HorizontalLayout(pname),
+        button1("rect.svg"),
+        button2("camera.svg"),
+        button3("rect.svg")
+    {
+        AddCtrl(&button1);
+        AddCtrl(&button2);
+        AddCtrl(&button3);
+    }
+protected:
+private:
+    Button         button1;
+    Button         button2;
+    Button        button3;
+};
 class the_application : public agg::platform_support
 {
-    VerticalLayout MyWin;
+    MyWindow MyWin;
 
     agg::svg::path_renderer m_path;
 
@@ -57,19 +74,14 @@ public:
         m_dx(0.0),
         m_dy(0.0),
         m_drag_flag(false),
-//         button1("rect.svg"),
-//         button2("camera.svg"),
-//         button3("rect.svg"),
-         MyWin("player.svg")
+         MyWin("rect.svg")
     {
         add_ctrl(m_expand);
         add_ctrl(m_gamma);
         add_ctrl(m_scale);
         add_ctrl(m_rotate);
 
-        //ctrls.AddCtrl(&button1);
-        //ctrls.AddCtrl(&button2);
-        //ctrls.AddCtrl(&button3);
+
 
         m_expand.label("Expand=%3.2f");
         m_expand.range(-1, 1.2);
@@ -128,8 +140,9 @@ public:
         
         //ctrls.render(ras, sl, ren, mtx, rb.clip_box(), 0.5);
         const agg::rect_i& rc = rb.clip_box();
+        MyWin.on_size(rc.x2-rc.x1,rc.y2-rc.y1);
         agg::pixfmt_bgra32& buf = MyWin.buf();
-        //pixf.copy_from(buf, rc.x1, rc.y1, 0, 0, buf.width());
+        pixf.copy_from(buf, rc.x1, rc.y1, 0, 0, buf.width());
 
         double tm = elapsed_time();
         unsigned vertex_count = m_path.vertex_count();
@@ -191,7 +204,6 @@ public:
     {
         if(key == ' ')
         {
-
             agg::trans_affine mtx;
             mtx *= agg::trans_affine_translation((m_min_x + m_max_x) * -0.5, (m_min_y + m_max_y) * -0.5);
             mtx *= agg::trans_affine_scaling(m_scale.value());
@@ -212,9 +224,6 @@ public:
             fclose(fd);
         }
     }
-
-
-
 };
 
 
