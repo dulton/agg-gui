@@ -19,7 +19,7 @@ enum { flip_y = false };
 
 class the_application : public agg::platform_support
 {
-    MyWindow MyWin;
+    VerticalLayout MyWin;
 
     agg::svg::path_renderer m_path;
 
@@ -57,10 +57,10 @@ public:
         m_dx(0.0),
         m_dy(0.0),
         m_drag_flag(false),
-        button1("rect.svg"),
-        button2("camera.svg"),
-        button3("rect.svg"),
-        ctrls("player.svg")
+//         button1("rect.svg"),
+//         button2("camera.svg"),
+//         button3("rect.svg"),
+         MyWin("player.svg")
     {
         add_ctrl(m_expand);
         add_ctrl(m_gamma);
@@ -68,7 +68,7 @@ public:
         add_ctrl(m_rotate);
 
         //ctrls.AddCtrl(&button1);
-        ctrls.AddCtrl(&button2);
+        //ctrls.AddCtrl(&button2);
         //ctrls.AddCtrl(&button3);
 
         m_expand.label("Expand=%3.2f");
@@ -127,9 +127,9 @@ public:
         start_timer();
         
         //ctrls.render(ras, sl, ren, mtx, rb.clip_box(), 0.5);
-        const rect_i& rc = rb.clip_box();
+        const agg::rect_i& rc = rb.clip_box();
         agg::pixfmt_bgra32& buf = MyWin.buf();
-        pixf.copy_from(buf, rc.x1, rc.y1, 0, 0, buf.width());
+        //pixf.copy_from(buf, rc.x1, rc.y1, 0, 0, buf.width());
 
         double tm = elapsed_time();
         unsigned vertex_count = m_path.vertex_count();
@@ -141,7 +141,7 @@ public:
         agg::render_ctrl(ras, sl, rb, m_scale);
         agg::render_ctrl(ras, sl, rb, m_rotate);
 
-        char buf[128]; 
+        char text[128]; 
         agg::gsv_text t;
         t.size(10.0);
         t.flip(true);
@@ -149,10 +149,10 @@ public:
         agg::conv_stroke<agg::gsv_text> pt(t);
         pt.width(1.5);
 
-        sprintf(buf, "Vertices=%d Time=%.3f ms", vertex_count, tm);
+        sprintf(text, "Vertices=%d Time=%.3f ms", vertex_count, tm);
 
         t.start_point(10.0, 40.0);
-        t.text(buf);
+        t.text(text);
 
         ras.add_path(pt);
         ren.color(agg::rgba(0,0,0));

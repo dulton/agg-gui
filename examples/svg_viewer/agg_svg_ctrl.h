@@ -15,7 +15,8 @@
 #include "agg_svg_path_renderer.h"
 #include "agg_svg_parser.h"
 
-
+#include <string>
+#include <vector>
 class SvgCtrl
 {
 public:
@@ -34,26 +35,18 @@ public:
     }
     ~SvgCtrl()
     {
-        if (data)
-        {
-            delete []data;
-        }
     }
     
     void on_size(int x, int y)
     {
-        if (data)
-        {
-            delete []data;
-        }
-
         int width = x;
         int height = y;
         int stride = width/4*4;
-        data = new unsigned char[stride*height];
-
-        ren_buf.attach(data, width, height, stride);
-        pixfmt.attach(ren_buf);
+        data.resize(stride * height * pixfmt::pix_width);
+        ren_buf.attach(&data[0], width, height, stride);
+        pixf.attach(ren_buf);
+        renderer_base rb(pixf);
+        //renderer_base.clear(fill_color);???
     }
 
     virtual agg::pixfmt_bgra32& buf()
@@ -95,19 +88,22 @@ private:
         agg::trans_affine mtx;
 
         //先将坐标原点移动到SVG图形中心然后旋转,再移回去,移回去的距离考虑scale因素
-        agg::trans_affine mtx1;
         double scale1 = (double)pixf.width()  / (m_max_x - m_min_x);
         double scale2 = (double)pixf.height() / (m_max_y - m_min_y);
         double scale = scale2 < scale1?scale2:scale1;
-        mtx1 *= agg::trans_affine_translation((m_min_x + m_max_x) * -0.5, (m_min_y + m_max_y) * -0.5);
-        mtx1 *= agg::trans_affine_scaling(scale);
-        int x1 = (m_min_x + m_max_x) * 0.5 * scale + x1;
-        int y1 = (m_min_y + m_max_y) * 0.5 * scale + y1;
-        mtx1 *= agg::trans_affine_translation(x1, y1);
-
-        m_path.render(ras, sl, ren, mtx1, pixf, opacity);
+        mtx *= agg::trans_affine_translation((m_min_x + m_max_x) * -0.5, (m_min_y + m_max_y) * -0.5);
+        mtx *= agg::trans_affine_scaling(scale);
+        int x1 = (m_min_x + m_max_x) * 0.5 * scale;
+        int y1 = (m_min_y + m_max_y) * 0.5 * scale;
+        mtx *= agg::trans_affine_translation(x1, y1);
+        
+        agg::rect_i rc;
+        rc.x1 = rc.y1 = 0;
+        rc.x2 = pixf.width();
+        rc.y2 = pixf.height();
+        m_path.render(ras, sl, ren, mtx, rc, opacity);
     }
-protected:
+public:
     //svg范围
     double m_min_x;
     double m_min_y;
@@ -118,13 +114,19 @@ protected:
     agg::pixfmt_bgra32 pixf;
     int x1,y1;
     double opacity;
-    string Name;
-    unsigned char* data;
-    rendering_buffer ren_buf;
+    std::string Name;
+
+    std::vector<unsigned char> data;
+    agg::rendering_buffer ren_buf;
 };
 
 class CtrlContainer : public SvgCtrl
 {
+    struct CtrlInner  
+    {
+        SvgCtrl* ctrl;
+        int x,y;
+    };
 public:
     CtrlContainer(const char* path):SvgCtrl(path)
     {
@@ -132,24 +134,32 @@ public:
     }
     virtual void AddCtrl(SvgCtrl* c)
     {
-        pod_ctrl.push_back(c);
+        CtrlInner inner;
+        inner.ctrl = c;
+        inner.x = 0;
+        inner.y = 0;
+        pod_ctrl.push_back(inner);
     }
     agg::pixfmt_bgra32& buf()
     {
         for (int i = 0; i < pod_ctrl.size(); i++)
         {
-            agg::pixfmt_bgra32& subBuf = pod_ctrl[i]->buf();
-            int x1 = pod_ctrl[i]->x1;
-            int y1 = pod_ctrl[i]->y1;
+            agg::pixfmt_bgra32& subBuf = pod_ctrl[i].ctrl->buf();
+            int x1 = pod_ctrl[i].ctrl->x1;
+            int y1 = pod_ctrl[i].ctrl->y1;
             int subLen = subBuf.width();
 
+            //将整个子buf拷贝到x1,y1
             pixf.copy_from(subBuf, x1, y1, 0, 0, subLen);
         }
-    }
-    SvgCtrl* findCtrl(string Name)
-    {
 
+        return pixf;
     }
+    
+    SvgCtrl* findCtrl(std::string Name)
+    {
+    }
+
     virtual bool in_rect(double x, double y) const
     {
         return false;
@@ -160,7 +170,7 @@ public:
     {
         for (int i = 0; i < pod_ctrl.size(); i++)
         {
-            pod_ctrl[i]->on_mouse_button_down(x,y);
+            pod_ctrl[i].ctrl->on_mouse_button_down(x,y);
         }
         return false;
     }
@@ -169,7 +179,7 @@ public:
     {
         for (int i = 0; i < pod_ctrl.size(); i++)
         {
-            pod_ctrl[i]->on_mouse_move(x,y,button_flag);
+            pod_ctrl[i].ctrl->on_mouse_move(x,y,button_flag);
         }
         return false;
     }
@@ -179,12 +189,12 @@ public:
     {
         for (int i = 0; i < pod_ctrl.size(); i++)
         {
-            pod_ctrl[i]->on_mouse_button_up(x,y);
+            pod_ctrl[i].ctrl->on_mouse_button_up(x,y);
         }
         return false;
     }
 protected:
-    agg::pod_vector<SvgCtrl*> pod_ctrl;
+    agg::pod_vector<CtrlInner> pod_ctrl;
 };
 
 
@@ -235,6 +245,7 @@ private:
 class HorizontalLayout : public CtrlContainer
 {
 public:
+    HorizontalLayout(const char* path):CtrlContainer(path){gap = 3;}
     virtual void CalcuLayout()
     {
         int EachCtrlSize = ((m_max_x - m_min_x) - pod_ctrl.size()*gap)/pod_ctrl.size();
@@ -246,7 +257,9 @@ public:
             rc.y1 = m_min_y;
             rc.y2 = m_max_y;
 
-            pod_ctrl[i]->setRect(rc);
+            pod_ctrl[i].ctrl->on_size(rc.x2-rc.x1, rc.y2-rc.x1);
+            pod_ctrl[i].x = rc.x1;
+            pod_ctrl[i].y = rc.y1;
         }
     }
 private:
@@ -256,7 +269,7 @@ private:
 class VerticalLayout : public CtrlContainer
 {
 public:
-    VerticalLayout(const char* path):Layout(path){gap = 3;}
+    VerticalLayout(const char* path):CtrlContainer(path){gap = 3;}
     virtual void CalcuLayout()
     {
         int EachCtrlSize = ((m_max_x - m_min_x) - pod_ctrl.size()*gap)/pod_ctrl.size();
@@ -268,7 +281,9 @@ public:
             rc.y1 = EachCtrlSize*i;
             rc.y2 = rc.y1 + EachCtrlSize;
 
-            pod_ctrl[i]->setRect(rc);
+            pod_ctrl[i].ctrl->on_size(rc.x2-rc.x1, rc.y2-rc.x1);
+            pod_ctrl[i].x = rc.x1;
+            pod_ctrl[i].y = rc.y1;
         }
     }
 private:
