@@ -186,24 +186,6 @@ namespace svg
 			m_storage.join_path( vs );
 		}
 
-		// 设置/获取SVG的宽度、高度及其长度单位
-		//
-		// 祝晓鹰添加 2014-02-14
-		void set_width( double value, const char* unit )
-		{
-			m_width = value;
-			strcpy( m_width_unit, unit );
-		}
-		void set_height( double value, const char* unit )
-		{
-			m_height = value;
-			strcpy( m_height_unit, unit );
-		}
-		double width()  { return m_width;  }
-		double height() { return m_height; }
-		const char* width_unit()  { return m_width_unit;  }
-		const char* height_unit() { return m_height_unit; }
-
 //        template<class VertexSource> 
 //        void add_path(VertexSource& vs, 
 //                      unsigned path_id = 0, 
@@ -357,13 +339,6 @@ namespace svg
         curved_trans                 m_curved_trans;
         curved_trans_contour         m_curved_trans_contour;
 
-		// SVG的宽度和高度
-		//
-		// 祝晓鹰添加 2014-02-14
-		double		m_width;
-		double		m_height;
-		char		m_width_unit[32];
-		char		m_height_unit[32];
     };
 
 }

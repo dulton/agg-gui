@@ -1093,7 +1093,6 @@ namespace svg
 				char   unit[32];
 				parse_double_with_unit( attr[i + 1], &value, unit );
 				if ( value < 0.0) throw exception( "parse_svg_root: Invalid width: %f", value );
-				m_path.set_width( value, unit );
 			}
 
 			if ( strcmp(attr[i], "height") == 0 )
@@ -1102,7 +1101,6 @@ namespace svg
 				char   unit[32];
 				parse_double_with_unit( attr[i + 1], &value, unit );
 				if ( value < 0.0) throw exception( "parse_svg_root: Invalid height: %f", value );
-				m_path.set_height( value, unit );
 			}
         }
 	}

@@ -20,7 +20,7 @@ class MyWindow : public HorizontalLayout
 {
 public:
     MyWindow(const char* pname):HorizontalLayout(pname),
-        button1("rect.svg"),
+        button1("camera.svg"),
         button2("camera.svg"),
         button3("rect.svg")
     {
@@ -142,8 +142,7 @@ public:
         const agg::rect_i& rc = rb.clip_box();
         MyWin.on_size(rc.x2-rc.x1,rc.y2-rc.y1);
         agg::pixfmt_bgra32& buf = MyWin.buf();
-        pixf.copy_from(buf, rc.x1, rc.y1, 0, 0, buf.width());
-
+        rb.blend_from(buf, NULL, rc.x1, rc.y1);
         double tm = elapsed_time();
         unsigned vertex_count = m_path.vertex_count();
 

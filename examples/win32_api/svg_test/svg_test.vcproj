@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="8.00"
 	Name="svg_test"
-	ProjectGUID="{E02F6B13-1F1E-4024-90F1-342FD9715766}"
+	ProjectGUID="{5EAD9C43-F4E7-4FF2-8845-1F75C67B3B9F}"
 	>
 	<Platforms>
 		<Platform

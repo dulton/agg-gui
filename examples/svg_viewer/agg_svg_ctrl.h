@@ -43,15 +43,14 @@ public:
     {
         int width = x;
         int height = y;
-        int stride = width*4/4;
+        int stride = width* pixfmt::pix_width*4/4;
         if (stride > 0 && height > 0)
         {
             data.resize(stride * height * pixfmt::pix_width);
             ren_buf.attach(&data[0], width, height, stride);
             pixf.attach(ren_buf);
             renderer_base rb(pixf);
-            //renderer_base.clear(fill_color);???
-
+            rb.clear(agg::rgba(1,1,1));
         }
     }
 
@@ -155,7 +154,8 @@ public:
             int subLen = subBuf.width();
 
             //将整个子buf拷贝到x1,y1
-            pixf.copy_from(subBuf, x1, y1, 0, 0, subLen);
+            renderer_base rb(pixf);
+            rb.blend_from(subBuf, 0, x1, y1);
         }
 
         return pixf;
@@ -263,8 +263,8 @@ public:
             agg::rect_i rc;
             rc.x1 = EachWidth*i;
             rc.x2 = rc.x1 + EachWidth;
-            rc.y1 = m_min_y;
-            rc.y2 = m_max_y;
+            rc.y1 = 0;
+            rc.y2 = LayoutHeight;
 
             pod_ctrl[i].ctrl->on_size(EachWidth, LayoutHeight);
             pod_ctrl[i].x = rc.x1;
